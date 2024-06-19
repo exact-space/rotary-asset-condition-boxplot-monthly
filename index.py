@@ -361,11 +361,13 @@ def boxplot_oneyrs(unitsId,tag,base_url,eqid):
         df1yr["time"]=pd.to_datetime(df1yr['time']/1000+5.5*60*60, unit='s')
         df1yr['time'] =df1yr['time'].dt.strftime('%Y-%m-%d %H:%M:%S')
         df1yr['time'] = pd.to_datetime(df1yr['time'])
-
-        bplot1yr=removingOutliers(df1yr,statetag,validload,unitsId,tag,base_url)
-        bplot1yr=boxplot(bplot1yr,tag,unitsId,"1Y")
-        print("bplot1yr",bplot1yr)
-
+        try:
+            bplot1yr=removingOutliers(df1yr,statetag,validload,unitsId,tag,base_url)
+            bplot1yr=boxplot(bplot1yr,tag,unitsId,"1Y")
+            print("bplot1yr",bplot1yr)
+        except:
+            print("No StateTag or ValidLoad")
+            pass
         if bplot1yr!=[]:
 
             postscylla(bplot1yr)

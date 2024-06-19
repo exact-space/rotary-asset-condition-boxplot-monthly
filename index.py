@@ -57,7 +57,7 @@ def getUnitsId(base_url):
     unitsId = [i['id'] for i in jjson]
     return unitsId
 
-# unitsId=getUnitsId(base_url)
+unitsId=getUnitsId(base_url)
 # sufix = unitsId_+"boxplot"
 # metric_list = [prefix + str(ids) for ids in unitIds]
 # print(metric_list)
@@ -159,71 +159,82 @@ def boxplot(df,tag,unitId,year):
     print("**********df*****************",df)
     if not df.empty:
         if tag in df.columns:
-            print(tag)
-            df=df[df[tag]<99999.0]
+            
+            df[tag] = pd.to_numeric(df[tag], errors='coerce')
+
+#     Drop rows with NaN values (which were non-numeric)
+            df = df.dropna(subset=[tag])
             if not df.empty:
+                print(tag)
+                df=df[df[tag]<99999.0]
+                if not df.empty:
+                    
+                    print("dataframe",df.head())
+            #         df['year'] = pd.to_datetime(df['time'], format='%d-%m-%Y %H:%M').dt.year
+
+                # Store the year in a variable (assuming all entries are from the same year)
+            #         year = df['year'].iloc[0]
+
+                    print(df.head())
+                    lst=[]
+                    #     try:
+                    Min=round(float(df[tag].min()),2)
+                    q1 = round(float(np.quantile(df[tag], 0.25)),2)
+                    Med=round(float(df[tag].median()),2)
+                    q3=round(float(np.quantile(df[tag], 0.75)),2)
+                    Max=round(float(df[tag].max()),2)
+
+                    lst.append( {
+                        "name":unitId+"_boxplot",
+                        "datapoints":[[0,Min]],
+            #             "timestamp":0,
+            #             "value":Min,
+                        "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Min"}
+                        })
+                    lst.append( {
+                        "name":unitId+"_boxplot",
+                        "datapoints": [[0,q1]],
+            #             "timestamp":0,
+            #             "value":q1,
+                        "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"q1"}
+                        })
+                    lst.append({
+                        "name":unitId+"_boxplot",
+                        "datapoints": [[0,Med]],
+            #             "timestamp":0,
+            #             "value":med ,
+                        "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Med"}
+                        })
+                    lst.append({
+                        "name":unitId+"_boxplot",
+                        "datapoints": [[0,q3]],
+        #                 "timestamp":0,
+        #                 "value":q3,
+                        "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"q3"}
+                        })
+                    lst.append({
+                        "name":unitId+"_boxplot",
+                        "datapoints": [[0,Max]],
+            #             "timestamp":0,
+            #             "value":Max,
+                        "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Max"}
+
+                        })
+                    
                 
-                print("dataframe",df.head())
-        #         df['year'] = pd.to_datetime(df['time'], format='%d-%m-%Y %H:%M').dt.year
-
-            # Store the year in a variable (assuming all entries are from the same year)
-        #         year = df['year'].iloc[0]
-
-                print(df.head())
-                lst=[]
-                #     try:
-                Min=round(float(df[tag].min()),2)
-                q1 = round(float(np.quantile(df[tag], 0.25)),2)
-                Med=round(float(df[tag].median()),2)
-                q3=round(float(np.quantile(df[tag], 0.75)),2)
-                Max=round(float(df[tag].max()),2)
-
-                lst.append( {
-                    "name":unitId+"_boxplot",
-                    "datapoints":[[0,Min]],
-        #             "timestamp":0,
-        #             "value":Min,
-                    "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Min"}
-                    })
-                lst.append( {
-                    "name":unitId+"_boxplot",
-                    "datapoints": [[0,q1]],
-        #             "timestamp":0,
-        #             "value":q1,
-                    "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"q1"}
-                    })
-                lst.append({
-                    "name":unitId+"_boxplot",
-                    "datapoints": [[0,Med]],
-        #             "timestamp":0,
-        #             "value":med ,
-                     "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Med"}
-                    })
-                lst.append({
-                    "name":unitId+"_boxplot",
-                    "datapoints": [[0,q3]],
-    #                 "timestamp":0,
-    #                 "value":q3,
-                     "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"q3"}
-                    })
-                lst.append({
-                    "name":unitId+"_boxplot",
-                    "datapoints": [[0,Max]],
-        #             "timestamp":0,
-        #             "value":Max,
-                     "tags":{"dataTagId" : tag, "period":str(year),"calculationType":"Max"}
-
-                    })
-
-        #         postscylla(lst)
+                else:
+                   print("No Numeric Data")
+            
+                   lst=[]
+            #         postscylla(lst)
             else:
-                print("no data")
-              
+                print("No Tag")
+            
                 lst=[]
 
 
         else:
-            print("no data")
+            print("No Data")
             
             lst=[]
 
@@ -322,7 +333,7 @@ def boxplot_oneyrs(unitsId,tag,base_url,eqid):
     validload='validload__'+tag
     eqid=fetchtagmeta(unitsId,tag,base_url)
     
-    if eqid !=[]:
+    if (eqid !=[]) & (eqid !=None):
         
         statetag='state__'+eqid
         taglist= [statetag,tag, validload]
@@ -390,24 +401,25 @@ def postscylla(body):
 
 def boxplot_main_fun(unitsId,base_url):
     print("Running main function")
-    tagList=getallTags(unitsId,base_url)
+    for unit in unitsId:
+        tagList=getallTags(unit,base_url)
 #     tagList=['LPG_3LAV20CY101_XQ07.OUT']
     
 #     tg=get_boxplot(unitsId,tag)
-    for tag in tagList:
-#         res=fetch_boxplot(unitsId,tag)
-#         print(res)
-        eqid=fetchtagmeta(unitsId,tag,base_url)
-#         if res=={}:
-        
-        
-#             boxplot_yrs(unitsId,tag,base_url,eqid) 
-#             print("**********************end of years function*********************")
-        boxplot_oneyrs(unitsId,tag,base_url,eqid)
-        print("****************end of one year**********************************")
-#             boxplot_onemonth_sevendays(unitsId,tag,base_url,eqid)
-#             print("**************end of seven days**************************************")
-    print("done posting for unitsId :",unitsId)
+        for tag in tagList:
+    #         res=fetch_boxplot(unitsId,tag)
+    #         print(res)
+            eqid=fetchtagmeta(unit,tag,base_url)
+    #         if res=={}:
+            
+            
+    #             boxplot_yrs(unitsId,tag,base_url,eqid) 
+    #             print("**********************end of years function*********************")
+            boxplot_oneyrs(unit,tag,base_url,eqid)
+            print("****************end of one year**********************************")
+    #             boxplot_onemonth_sevendays(unitsId,tag,base_url,eqid)
+    #             print("**************end of seven days**************************************")
+        print("done posting for unitsId :",unit)
     
     time.sleep(5)
     print("Main function execution complete")
